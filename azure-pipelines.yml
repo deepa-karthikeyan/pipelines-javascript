@@ -8,7 +8,11 @@ trigger:
 
 pool:
   name: AKS-AGENT-TEST 
-  vmImage: 'ubuntu-latest'
+
+variables: 
+  ## Add this under variables section in the pipeline
+  azureSubscription: MandS - Explore - Platform PAAS - PoC
+  appName: devopsagent-testnodejsapp
 
 steps:
 - task: NodeTool@0
@@ -25,3 +29,11 @@ steps:
   inputs:
     rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
     includeRootFolder: false
+
+- task: AzureWebApp@1
+  displayName: 'Azure Web App Deploy'
+  inputs:
+    azureSubscription: $(azureSubscription)
+    appType: webAppLinux
+    appName: $(appName)
+    package: $(System.ArtifactsDirectory)/**/*.zip
