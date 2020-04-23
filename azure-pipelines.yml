@@ -11,7 +11,7 @@ pool:
 
 variables: 
   ## Add this under variables section in the pipeline
-  azureSubscription: MandS - Explore - Platform PAAS - PoC
+  azureSubscription: b85f5384-383d-470b-9743-3ab78261bb4b
   appName: devopsagent-testnodejsapp
 
 steps:
