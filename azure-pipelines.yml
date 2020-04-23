@@ -26,6 +26,10 @@ steps:
     npm run build
   displayName: 'npm install and build'
 
+- script: |
+    apt-get install zip
+  displayName: 'Install zip tool'
+
 - task: ArchiveFiles@2
   inputs:
     rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
