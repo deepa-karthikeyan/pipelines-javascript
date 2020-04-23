@@ -9,7 +9,7 @@ const HOST = "0.0.0.0";
 // App
 const app = express();
 app.get("/", (req, res) => {
-  res.send("Welcome to Azure DevOps!\n");
+  res.send("Welcome to Azure Devops POC!\n");
 });
 
 app.get("/html", (req, res) => {
