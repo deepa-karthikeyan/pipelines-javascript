@@ -12,6 +12,11 @@ app.get('/', (req, res) => {
   res.send('Welcome to Azure DevOps!\n');
 });
 
+app.get('/html', (req, res) => {
+  res.sendFile("sample_page.html", {
+    root: __dirname
+});
+
 var port = process.env.PORT||PORT;
 app.listen(port);
 console.log(`Running on http://${HOST}:${PORT}`);
