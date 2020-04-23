@@ -11,7 +11,7 @@ pool:
 
 variables: 
   ## Add this under variables section in the pipeline
-  azureSubscription: b85f5384-383d-470b-9743-3ab78261bb4b
+  azureSubscription: connection_to_deepa_poc
   appName: devopsagent-testnodejsapp
 
 steps:
