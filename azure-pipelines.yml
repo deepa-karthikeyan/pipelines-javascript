@@ -34,7 +34,6 @@ steps:
   inputs:
     rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
     includeRootFolder: false
-    archiveFile: 'HelloNodeApp.zip'
     replaceExistingArchive: true
 
 - task: AzureWebApp@1
