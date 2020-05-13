@@ -1,50 +1,130 @@
-# Node.js
-# Build a general Node.js project with npm.
-# Add steps that analyze code, save build artifacts, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
+#FoodsChannelOrder Service pipeline
+name: $(Rev:r)
+variables:
+ repositoryName: 'foods-channel-order'
+ runNumber : $(Build.BuildNumber)
 
+#Trigger for Development
 trigger:
-- master
+ branches:
+   include:
+     - development
+#Trigger checks for PR
+pr: 
+ branches:
+    include:
+      - development
+ paths:
+   exclude:
+     - README/*
 
-pool:
-  name: AKS-AGENT-TEST 
-  vmImage: 'ubuntu-latest'
+pool: 
+ name: 'MnSFoodsAgentPool'
+ 
+#Stages of pipeline
+stages:
+  - stage: 'Build'
+    displayName: 'Build and Test Stage'
+    jobs:
+      - job: 'UnitTesting'
+        steps:
+          - script: echo 'Running unit tests'
+          
+          - task: DownloadSecureFile@1
+            inputs:
+              secureFile: 'settings.xml'
+          
+          - task: CopyFiles@2
+            inputs:
+              SourceFolder: '$(Agent.TempDirectory)'
+              Contents: 'settings.xml'
+              TargetFolder: '/home/vsts/.m2/'
+              
+          - task: Maven@3
+            inputs:
+              mavenPomFile: 'pom.xml'
+              goals: 'clean package'
+              options: ' --no-transfer-progress'
+              mavenOptions: '-Xmx3072m'
+              javaHomeOption: JDKVersion
+              jdkArchitectureOption: x64
+              jdkVersionOption: 1.11
+              codeCoverageToolOption: JaCoCo
+              publishJUnitResults: true
+              testResultsFiles: '**/surefire-reports/TEST-*.xml'
+              checkStyleRunAnalysis: true
+              pmdRunAnalysis: true
+              
+          - task: CopyFiles@2
+            inputs:
+              SourceFolder: '$(Agent.BuildDirectory)/s/target/'
+              Contents: '$(repositoryName).jar'
+              TargetFolder: '$(build.artifactstagingdirectory)'
 
-variables: 
-  ## Add this under variables section in the pipeline
-  azureSubscription: connection_to_deepa_poc
-  appName: devopsagent-testnodejsapp
+          - task: PublishBuildArtifacts@1
+            inputs:
+              PathtoPublish: '$(Build.SourcesDirectory)/helm'
+              ArtifactName: helm
 
-steps:
-# - task: NodeTool@0
-#   inputs:
-#     versionSpec: '10.x'
-#   displayName: 'Install Node.js'
+          - task: PublishBuildArtifacts@1
+            inputs:
+              PathtoPublish: '$(build.artifactstagingdirectory)'
+              ArtifactName: drop
+        continueOnError: false
+        displayName: 'JUnit and Code Coverage'
+        
+# Docker Stage
+  - stage: 'DockerizeDeploy'
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/development'))
+    displayName: 'Image Creation'
+    jobs:
+      - job: 'CreateImage'
+        steps:
+          - script: |
+                   echo Current dir is `pwd`
 
-# - script: |
-#     npm install
-#     npm run build
-#   displayName: 'npm install & build'
+          - task: HelmInstaller@1
+            inputs:
+              helmVersionToInstall: '3.2.0'
+          
+          - task: DownloadBuildArtifacts@0
+            inputs:
+               buildType: 'current'
+               downloadType: 'single'
+               artifactName: 'drop'
+               downloadPath: '.'
+        
+          - script: echo 'Creating Docker Image'
+          - script: mv drop/$(repositoryName).jar .
+          
+          - task: Docker@2
+            inputs:
+              containerRegistry: 'fodintegrationcomponentsregistry'
+              repository: '$(repositoryName)'
+              command: 'build'
+              Dockerfile: 'dockerfile'
+              tags: 'R$(runNumber)'
+              arguments: '--build-arg build_no=$(runNumber)'
 
-- script: |
-    node --version
-    npm run build
-  displayName: 'npm install & build'
-
-# - script: |
-#     apt-get install zip
-#   displayName: 'Install zip tool'
-
-# - task: ArchiveFiles@2
-#   inputs:
-#     rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
-#     includeRootFolder: false
-#     replaceExistingArchive: true
-
-# - task: AzureWebApp@1
-#   displayName: 'Azure Web App Deploy'
-#   inputs:
-#     azureSubscription: $(azureSubscription)
-#     appType: webAppLinux
-#     appName: $(appName)
-#     package: $(System.ArtifactsDirectory)/**/*.zip
+          - task: Docker@2
+            inputs:
+              containerRegistry: 'fodintegrationcomponentsregistry'
+              repository: '$(repositoryName)'
+              command: 'push'
+              tags: 'R$(runNumber)'
+              
+          - task: HelmDeploy@0
+            inputs:
+               connectionType: 'Kubernetes Service Connection'
+               kubernetesServiceConnection: 'Orca-V2_non_prod_K8s_connection'
+               namespace: 'foodsorca'
+               releaseName: '$(repositoryName)'
+               command: upgrade
+               chartType: 'FilePath'
+               chartPath: 'helm'
+               overrideValues: 'dockerTag=R$(runNumber)'
+               valueFile: 'helm/dev.yaml'
+               #arguments: '--debug'
+               waitForExecution: false
+        displayName: 'Docker Image Creation and Deploy'
