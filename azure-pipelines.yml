@@ -19,7 +19,7 @@ pr:
      - README/*
 
 pool: 
- name: 'MnSFoodsAgentPool'
+ name: 'AKS-AGENT-TEST'
  
 #Stages of pipeline
 stages:
