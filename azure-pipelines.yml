@@ -1,14 +1,10 @@
-# Node.js
-# Build a general Node.js project with npm.
-# Add steps that analyze code, save build artifacts, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
 
 trigger:
 - master
 
 pool:
   name: AKS-AGENT-TEST 
-  vmImage: 'java'
+#   vmImage: 'ubuntu-latest'
 
 variables: 
   ## Add this under variables section in the pipeline
