@@ -8,7 +8,7 @@ trigger:
 
 pool:
   name: AKS-AGENT-TEST 
-  vmImage: 'ubuntu-latest'
+  vmImage: 'java'
 
 variables: 
   ## Add this under variables section in the pipeline
